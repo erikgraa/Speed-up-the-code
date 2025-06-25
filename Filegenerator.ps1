@@ -1,48 +1,60 @@
-Measure-Command{
-$bigFileName = "plc_log.txt"
-$plcNames = 'PLC_A','PLC_B','PLC_C','PLC_D'
-$errorTypes = @(
-    'Sandextrator overload',
-    'Conveyor misalignment',
-    'Valve stuck',
-    'Temperature warning'
-)
-$statusCodes = 'OK','WARN','ERR'
+Measure-Command {
 
-#$d = get-date
-$logLines = for ($i=0; $i -lt 50000; $i++) {
-    #$timestamp = $d.AddSeconds(-$i).ToString("yyyy-MM-dd HH:mm:ss")
-    $timestamp = (Get-Date).AddSeconds(-$i).ToString("yyyy-MM-dd HH:mm:ss")
-    #$plc = $plcNames | Get-Random
-    $plc = Get-Random -InputObject $plcNames
-    #$operator = Get-Random -Minimum 101 -Maximum 121
-    $operator = [System.Random]::New().Next(101,121)
-    #$batch = Get-Random -Minimum 1000 -Maximum 1101
-    $batch = [System.Random]::New().Next(1000,1101)
-    #$status = $statusCodes | Get-Random
-    $status = Get-Random -InputObject $statusCodes
-    #$machineTemp = [math]::Round((Get-Random -Minimum 60 -Maximum 110) + (Get-Random),2)
-    $machineTemp = [math]::Round([System.Random]::New().Next(60,110)+ [System.Random]::New().Next(),2)
-    #$load = Get-Random -Minimum 0 -Maximum 101
-    $load = [System.Random]::New().Next(0,101)
- 
-    #if ((Get-Random -Minimum 1 -Maximum 8) -eq 4) {
-    if (([System.Random]::New().Next(1,8)) -eq 4) {
-        #$errorType = $errorTypes | Get-Random 
-        $errorType = Get-Random -InputObject $errorTypes
-        if ($errorType -eq 'Sandextrator overload') {
-            #$value = (Get-Random -Minimum 1 -Maximum 11)
-            $value = [System.Random]::New().Next(1,11)
-            "ERROR; $timestamp; $plc; $errorType; $value; $status; $operator; $batch; $machineTemp; $load"
-        } else {
-            "ERROR; $timestamp; $plc; $errorType; ; $status; $operator; $batch; $machineTemp; $load"
+if (-not ([System.Management.Automation.PSTypeName]'FileGenerator').Type) {
+Add-Type -TypeDefinition @"
+using System;
+using System.Text;
+using System.IO;
+using System.Globalization;
+using System.Collections.Generic;
+
+public class FileGenerator {
+    public static void Generate(string filePath) {
+        var plcNames = new string[] { "PLC_A", "PLC_B", "PLC_C", "PLC_D" };
+        var errorTypes = new string[] {
+            "Sandextrator overload",
+            "Conveyor misalignment",
+            "Valve stuck",
+            "Temperature warning"
+        };
+        var statusCodes = new string[] { "OK", "WARN", "ERR" };
+
+        var random = new Random();
+        var sb = new StringBuilder();
+        var now = DateTime.Now;
+
+        for (int i = 0; i < 50000; i++) {
+            string timestamp = now.AddSeconds(-i).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            string plc = plcNames[random.Next(plcNames.Length)];
+            int operatorId = random.Next(101, 121);
+            int batch = random.Next(1000, 1101);
+            string status = statusCodes[random.Next(statusCodes.Length)];
+            double machineTemp = Math.Round((double)(random.Next(60, 110) + random.Next()), 2);
+            int load = random.Next(0, 101);
+
+            if (random.Next(1, 8) == 4) {
+                string errorType = errorTypes[random.Next(errorTypes.Length)];
+                if (errorType.StartsWith("S")) {
+                    int value = random.Next(1, 11);
+                    sb.AppendLine($"ERROR; {timestamp}; {plc}; {errorType}; {value}; {status}; {operatorId}; {batch}; {machineTemp}; {load}");
+                }
+                else {
+                    sb.AppendLine($"ERROR; {timestamp}; {plc}; {errorType}; ; {status}; {operatorId}; {batch}; {machineTemp}; {load}");
+                }
+            }
+            else {
+                sb.AppendLine($"INFO; {timestamp}; {plc}; System running normally; ; {status}; {operatorId}; {batch}; {machineTemp}; {load}");
+            }
         }
-    } else {
-        "INFO; $timestamp; $plc; System running normally; ; $status; $operator; $batch; $machineTemp; $load"
+
+        File.WriteAllText(filePath, sb.ToString());
     }
 }
- 
-Set-Content -Path $bigFileName -Value $logLines
-#[System.IO.File]::WriteAllText($bigFileName, $logLines)
-Write-Output "PLC log file generated."
+"@ -Language CSharp
+}
+
+    $bigFileName = 'plc_log.txt'
+    [FileGenerator]::Generate($bigFileName)
+
+    'PLC log file generated.'
 }
