@@ -1,7 +1,6 @@
 Measure-Command {
-
 if (-not ([System.Management.Automation.PSTypeName]'FileGenerator').Type) {
-Add-Type -TypeDefinition @"
+  Add-Type -TypeDefinition @"
 using System;
 using System.Text;
 using System.IO;
@@ -53,8 +52,8 @@ public class FileGenerator {
 "@ -Language CSharp
 }
 
-    $bigFileName = 'plc_log.txt'
-    [FileGenerator]::Generate($bigFileName)
+  $bigFileName = 'plc_log.txt'
+  [FileGenerator]::Generate($bigFileName)
 
-    'PLC log file generated.'
+  'PLC log file generated.'
 }
